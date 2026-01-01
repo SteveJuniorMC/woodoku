@@ -20,6 +20,10 @@ class HighScoreManager(context: Context) {
         }
     }
 
+    fun resetHighScore() {
+        prefs.edit().remove(KEY_HIGH_SCORE).apply()
+    }
+
     companion object {
         private const val PREFS_NAME = "woodoku_prefs"
         private const val KEY_HIGH_SCORE = "high_score"

@@ -6,20 +6,24 @@ import com.game.woodoku.game.GameState.Companion.SECTION_SIZE
 class GameLogic(private val state: GameState) {
 
     interface GameListener {
-        fun onScoreChanged(score: Int, combo: Int, streak: Int)
+        fun onScoreChanged(score: Int, combo: Int, streak: Int, pointsGained: Int)
         fun onShapesChanged()
         fun onGridChanged()
-        fun onLinesCleared(count: Int)
-        fun onGameOver()
+        fun onShapePlaced(cells: List<Pair<Int, Int>>, color: Int)
+        fun onLinesCleared(count: Int, clearedCells: Set<Pair<Int, Int>>, cellColors: Map<Pair<Int, Int>, Int>)
+        fun onStreakMilestone(streak: Int, bonus: Int)
+        fun onGameOver(isNewHighScore: Boolean)
     }
 
     var listener: GameListener? = null
+
+    var highScoreChecker: ((Int) -> Boolean)? = null
 
     fun startNewGame() {
         state.reset()
         generateShapes()
         listener?.onGridChanged()
-        listener?.onScoreChanged(state.score, state.combo, state.streak)
+        listener?.onScoreChanged(state.score, state.combo, state.streak, 0)
         listener?.onShapesChanged()
     }
 
@@ -55,6 +59,9 @@ class GameLogic(private val state: GameState) {
             return false
         }
 
+        // Calculate placed cells for animation
+        val placedCells = shape.cells.map { (dx, dy) -> Pair(gridX + dx, gridY + dy) }
+
         // Place the shape on the grid
         for ((dx, dy) in shape.cells) {
             val x = gridX + dx
@@ -62,31 +69,41 @@ class GameLogic(private val state: GameState) {
             state.grid[y][x] = shape.colorResId
         }
 
+        // Notify shape placed for animation
+        listener?.onShapePlaced(placedCells, shape.colorResId)
+
         // Remove shape from available
         state.availableShapes[shapeIndex] = null
 
         // Calculate base score for placing
         val placementScore = shape.cells.size * 10
+        var totalPointsGained = placementScore
         state.score += placementScore
 
         // Check and clear lines
-        val linesCleared = checkAndClearLines()
+        val (linesCleared, clearedCells, cellColors) = checkAndClearLines()
 
         if (linesCleared > 0) {
             state.combo++
             val lineScore = linesCleared * 100 * state.combo
             state.score += lineScore
-            listener?.onLinesCleared(linesCleared)
+            totalPointsGained += lineScore
+            listener?.onLinesCleared(linesCleared, clearedCells, cellColors)
         } else {
             state.combo = 0
         }
 
         // Update streak
         state.streak++
-        checkStreakBonus()
+        val streakBonus = getStreakBonus(state.streak)
+        if (streakBonus > 0) {
+            state.score += streakBonus
+            totalPointsGained += streakBonus
+            listener?.onStreakMilestone(state.streak, streakBonus)
+        }
 
         listener?.onGridChanged()
-        listener?.onScoreChanged(state.score, state.combo, state.streak)
+        listener?.onScoreChanged(state.score, state.combo, state.streak, totalPointsGained)
 
         // Generate new shapes if all used
         if (state.availableShapes.all { it == null }) {
@@ -98,13 +115,14 @@ class GameLogic(private val state: GameState) {
         // Check game over
         if (checkGameOver()) {
             state.isGameOver = true
-            listener?.onGameOver()
+            val isNewHighScore = highScoreChecker?.invoke(state.score) ?: false
+            listener?.onGameOver(isNewHighScore)
         }
 
         return true
     }
 
-    private fun checkAndClearLines(): Int {
+    private fun checkAndClearLines(): Triple<Int, Set<Pair<Int, Int>>, Map<Pair<Int, Int>, Int>> {
         val rowsToClear = mutableSetOf<Int>()
         val colsToClear = mutableSetOf<Int>()
         val boxesToClear = mutableSetOf<Pair<Int, Int>>()
@@ -143,7 +161,7 @@ class GameLogic(private val state: GameState) {
             }
         }
 
-        // Clear the lines
+        // Collect cells to clear
         val cellsToClear = mutableSetOf<Pair<Int, Int>>()
 
         for (y in rowsToClear) {
@@ -168,24 +186,25 @@ class GameLogic(private val state: GameState) {
             }
         }
 
+        // Capture cell colors before clearing
+        val cellColors = cellsToClear.associateWith { (x, y) -> state.grid[y][x] }
+
         // Actually clear the cells
         for ((x, y) in cellsToClear) {
             state.grid[y][x] = 0
         }
 
-        return rowsToClear.size + colsToClear.size + boxesToClear.size
+        val linesCleared = rowsToClear.size + colsToClear.size + boxesToClear.size
+        return Triple(linesCleared, cellsToClear, cellColors)
     }
 
-    private fun checkStreakBonus() {
-        val bonus = when (state.streak) {
+    private fun getStreakBonus(streak: Int): Int {
+        return when (streak) {
             10 -> 100
             25 -> 250
             50 -> 500
             100 -> 1000
             else -> 0
-        }
-        if (bonus > 0) {
-            state.score += bonus
         }
     }
 

@@ -1,12 +1,17 @@
 package com.game.woodoku
 
+import android.content.Intent
 import android.os.Bundle
+import android.widget.ImageButton
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.game.woodoku.audio.SoundManager
 import com.game.woodoku.data.HighScoreManager
+import com.game.woodoku.data.SettingsManager
 import com.game.woodoku.game.GameLogic
 import com.game.woodoku.game.GameState
+import com.game.woodoku.util.VibrationHelper
 import com.game.woodoku.view.GameView
 import com.game.woodoku.view.ShapeSelectorView
 
@@ -15,6 +20,9 @@ class MainActivity : AppCompatActivity(), GameLogic.GameListener {
     private lateinit var gameState: GameState
     private lateinit var gameLogic: GameLogic
     private lateinit var highScoreManager: HighScoreManager
+    private lateinit var settingsManager: SettingsManager
+    private lateinit var soundManager: SoundManager
+    private lateinit var vibrationHelper: VibrationHelper
 
     private lateinit var gameView: GameView
     private lateinit var shapeSelectorView: ShapeSelectorView
@@ -27,11 +35,16 @@ class MainActivity : AppCompatActivity(), GameLogic.GameListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Initialize managers
         highScoreManager = HighScoreManager(this)
+        settingsManager = SettingsManager(this)
+        soundManager = SoundManager(this, settingsManager)
+        vibrationHelper = VibrationHelper(this, settingsManager)
 
         gameState = GameState()
         gameLogic = GameLogic(gameState)
         gameLogic.listener = this
+        gameLogic.highScoreChecker = { score -> highScoreManager.saveHighScore(score) }
 
         gameView = findViewById(R.id.gameView)
         shapeSelectorView = findViewById(R.id.shapeSelectorView)
@@ -55,6 +68,11 @@ class MainActivity : AppCompatActivity(), GameLogic.GameListener {
             }
         }
 
+        // Settings button
+        findViewById<ImageButton>(R.id.settingsButton).setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+
         // Pass grid cell size to shape selector after layout
         gameView.post {
             shapeSelectorView.gridCellSize = gameView.cellSize
@@ -65,10 +83,29 @@ class MainActivity : AppCompatActivity(), GameLogic.GameListener {
         gameLogic.startNewGame()
     }
 
-    override fun onScoreChanged(score: Int, combo: Int, streak: Int) {
+    override fun onResume() {
+        super.onResume()
+        // Refresh high score in case it was reset in settings
+        highScoreText.text = highScoreManager.getHighScore().toString()
+    }
+
+    override fun onScoreChanged(score: Int, combo: Int, streak: Int, pointsGained: Int) {
         scoreText.text = score.toString()
         comboText.text = combo.toString()
         streakText.text = streak.toString()
+
+        // Show score popup for significant points
+        if (pointsGained > 0) {
+            val centerX = gameView.getGridCenterX()
+            val centerY = gameView.getGridCenterY()
+            gameView.scorePopupManager.showScoreGain(pointsGained, centerX, centerY)
+
+            if (combo > 1) {
+                gameView.scorePopupManager.showComboText(combo, centerX, centerY)
+                vibrationHelper.vibrateCombo(combo)
+            }
+            gameView.startAnimationLoop()
+        }
     }
 
     override fun onShapesChanged() {
@@ -79,27 +116,52 @@ class MainActivity : AppCompatActivity(), GameLogic.GameListener {
         gameView.refresh()
     }
 
-    override fun onLinesCleared(count: Int) {
-        // Could add animation/sound here
+    override fun onShapePlaced(cells: List<Pair<Int, Int>>, color: Int) {
+        gameView.animateBlockPlace(cells, color)
+        soundManager.playBlockPlace()
+        vibrationHelper.vibrateBlockPlace()
     }
 
-    override fun onGameOver() {
-        val isNewHighScore = highScoreManager.saveHighScore(gameState.score)
+    override fun onLinesCleared(count: Int, clearedCells: Set<Pair<Int, Int>>, cellColors: Map<Pair<Int, Int>, Int>) {
+        gameView.animateLineClear(clearedCells, cellColors, count)
+        soundManager.playLineClear(gameState.combo)
+        vibrationHelper.vibrateLineClear(count)
+    }
+
+    override fun onStreakMilestone(streak: Int, bonus: Int) {
+        val centerX = gameView.getGridCenterX()
+        val centerY = gameView.getGridCenterY()
+        gameView.scorePopupManager.showStreakMilestone(streak, bonus, centerX, centerY)
+        gameView.startAnimationLoop()
+        soundManager.playStreakMilestone()
+    }
+
+    override fun onGameOver(isNewHighScore: Boolean) {
         highScoreText.text = highScoreManager.getHighScore().toString()
 
-        val message = if (isNewHighScore) {
-            getString(R.string.new_high_score) + "\n" + getString(R.string.game_over)
+        if (isNewHighScore) {
+            val centerX = gameView.getGridCenterX()
+            val centerY = gameView.getGridCenterY()
+            gameView.scorePopupManager.showNewHighScore(centerX, centerY)
+            gameView.startAnimationLoop()
+            soundManager.playHighScore()
+            vibrationHelper.vibrateHighScore()
         } else {
-            getString(R.string.game_over)
+            soundManager.playGameOver()
+            vibrationHelper.vibrateGameOver()
         }
 
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.game_over))
-            .setMessage("${getString(R.string.score_label)}: ${gameState.score}")
-            .setPositiveButton(getString(R.string.play_again)) { _, _ ->
-                gameLogic.startNewGame()
-            }
-            .setCancelable(false)
-            .show()
+        // Delay the dialog slightly to let animations play
+        gameView.postDelayed({
+            AlertDialog.Builder(this)
+                .setTitle(getString(R.string.game_over))
+                .setMessage("${getString(R.string.score_label)}: ${gameState.score}")
+                .setPositiveButton(getString(R.string.play_again)) { _, _ ->
+                    gameView.animationEngine.clear()
+                    gameLogic.startNewGame()
+                }
+                .setCancelable(false)
+                .show()
+        }, if (isNewHighScore) 1500L else 500L)
     }
 }

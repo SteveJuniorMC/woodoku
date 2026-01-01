@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background"
+    android:padding="16dp">
+
+    <!-- Header with back button -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="24dp">
+
+        <ImageButton
+            android:id="@+id/backButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/back"
+            app:tint="@color/text_primary" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings"
+            android:textColor="@color/text_primary"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginStart="16dp" />
+
+    </LinearLayout>
+
+    <!-- Sound Switch -->
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/soundSwitch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/sound_effects"
+        android:textColor="@color/text_primary"
+        android:textSize="18sp"
+        android:padding="16dp"
+        android:background="@color/grid_background"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Vibration Switch -->
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/vibrationSwitch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/vibration"
+        android:textColor="@color/text_primary"
+        android:textSize="18sp"
+        android:padding="16dp"
+        android:background="@color/grid_background"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Reset High Score Button -->
+    <Button
+        android:id="@+id/resetHighScoreButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/reset_high_score"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:textColor="@color/accent" />
+
+</LinearLayout>

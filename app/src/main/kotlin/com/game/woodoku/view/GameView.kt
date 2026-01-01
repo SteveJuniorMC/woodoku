@@ -5,10 +5,16 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
 import android.util.AttributeSet
+import android.view.Choreographer
 import android.view.DragEvent
 import android.view.View
 import androidx.core.content.ContextCompat
 import com.game.woodoku.R
+import com.game.woodoku.animation.AnimationEngine
+import com.game.woodoku.animation.BlockPlaceAnimation
+import com.game.woodoku.animation.LineClearAnimation
+import com.game.woodoku.animation.ParticleSystem
+import com.game.woodoku.animation.ScorePopupManager
 import com.game.woodoku.game.GameLogic
 import com.game.woodoku.game.GameState
 import com.game.woodoku.game.GameState.Companion.GRID_SIZE
@@ -29,6 +35,40 @@ class GameView @JvmOverloads constructor(
     private var gridOffset = 0f
     private val cellPadding = 2f
     private val cornerRadius = 4f
+
+    // Animation system
+    val animationEngine = AnimationEngine()
+    val scorePopupManager = ScorePopupManager(animationEngine)
+    private var lastFrameTime = 0L
+    private var isAnimating = false
+
+    private val frameCallback = object : Choreographer.FrameCallback {
+        override fun doFrame(frameTimeNanos: Long) {
+            val deltaTime = if (lastFrameTime == 0L) {
+                16f
+            } else {
+                (frameTimeNanos - lastFrameTime) / 1_000_000f
+            }
+            lastFrameTime = frameTimeNanos
+
+            val hasAnimations = animationEngine.update(deltaTime)
+            invalidate()
+
+            if (hasAnimations) {
+                Choreographer.getInstance().postFrameCallback(this)
+            } else {
+                isAnimating = false
+            }
+        }
+    }
+
+    fun startAnimationLoop() {
+        if (!isAnimating) {
+            isAnimating = true
+            lastFrameTime = 0L
+            Choreographer.getInstance().postFrameCallback(frameCallback)
+        }
+    }
 
     private var ghostShape: Shape? = null
     private var ghostX = -1
@@ -123,14 +163,49 @@ class GameView @JvmOverloads constructor(
         invalidate()
     }
 
+    fun animateBlockPlace(cells: List<Pair<Int, Int>>, colorResId: Int) {
+        val resolvedColor = ContextCompat.getColor(context, colorResId)
+        animationEngine.addAnimation(
+            BlockPlaceAnimation(cells, resolvedColor, cellSize, gridOffset, cellPadding, cornerRadius)
+        )
+        startAnimationLoop()
+    }
+
+    fun animateLineClear(cells: Set<Pair<Int, Int>>, cellColors: Map<Pair<Int, Int>, Int>, linesCleared: Int) {
+        // Resolve color resource IDs to actual colors
+        val resolvedColors = cellColors.mapValues { (_, colorResId) ->
+            ContextCompat.getColor(context, colorResId)
+        }
+        animationEngine.addAnimation(
+            LineClearAnimation(cells, resolvedColors, cellSize, gridOffset, cellPadding, cornerRadius)
+        )
+        animationEngine.addAnimation(
+            ParticleSystem(cells, resolvedColors, cellSize, gridOffset)
+        )
+        // Trigger screen shake for 2+ lines or combos
+        if (linesCleared >= 2) {
+            val intensity = (linesCleared * 4f).coerceAtMost(20f)
+            animationEngine.triggerScreenShake(intensity)
+        }
+        startAnimationLoop()
+    }
+
+    fun getGridCenterX(): Float = gridOffset + (GRID_SIZE * cellSize) / 2
+    fun getGridCenterY(): Float = gridOffset + (GRID_SIZE * cellSize) / 2
+
     private fun updateGhostPosition(x: Float, y: Float) {
         val shape = ghostShape ?: return
 
-        // Offset to match drag shadow (shape appears above finger)
-        val offsetY = y - cellSize * 1.5f - (shape.height * cellSize) / 2
+        // The drag shadow touch point is at (width/2, height + cellSize*0.5)
+        // So the shadow's top-left corner is at:
+        // shadowX = x - (shape.width * cellSize) / 2
+        // shadowY = y - shape.height * cellSize - cellSize * 0.5
+        val shadowTopLeftX = x - (shape.width * cellSize) / 2
+        val shadowTopLeftY = y - shape.height * cellSize - cellSize * 0.5f
 
-        val gridX = ((x - gridOffset) / cellSize).toInt() - shape.width / 2
-        val gridY = ((offsetY - gridOffset) / cellSize).toInt()
+        // Convert shadow top-left to grid coordinates
+        val gridX = ((shadowTopLeftX - gridOffset) / cellSize + 0.5f).toInt()
+        val gridY = ((shadowTopLeftY - gridOffset) / cellSize + 0.5f).toInt()
 
         if (gridX != ghostX || gridY != ghostY) {
             ghostX = gridX
@@ -168,6 +243,12 @@ class GameView @JvmOverloads constructor(
         super.onDraw(canvas)
 
         val state = gameState ?: return
+
+        // Apply screen shake
+        animationEngine.screenShake?.let { shake ->
+            canvas.save()
+            canvas.translate(shake.offsetX, shake.offsetY)
+        }
 
         // Draw grid background
         canvas.drawRoundRect(
@@ -219,6 +300,14 @@ class GameView @JvmOverloads constructor(
             val pos = gridOffset + i * SECTION_SIZE * cellSize
             canvas.drawLine(pos, gridOffset, pos, gridOffset + GRID_SIZE * cellSize, gridLineBoldPaint)
             canvas.drawLine(gridOffset, pos, gridOffset + GRID_SIZE * cellSize, pos, gridLineBoldPaint)
+        }
+
+        // Render animations
+        animationEngine.render(canvas)
+
+        // Restore canvas if screen shake was applied
+        if (animationEngine.screenShake != null) {
+            canvas.restore()
         }
     }
 

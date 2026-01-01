@@ -8,4 +8,16 @@
     <string name="game_over">Game Over</string>
     <string name="new_high_score">New High Score!</string>
     <string name="play_again">Play Again</string>
+
+    <!-- Settings -->
+    <string name="settings">Settings</string>
+    <string name="back">Back</string>
+    <string name="sound_effects">Sound Effects</string>
+    <string name="vibration">Vibration</string>
+    <string name="reset_high_score">Reset High Score</string>
+    <string name="reset_high_score_title">Reset High Score?</string>
+    <string name="reset_high_score_message">This will permanently delete your high score. This action cannot be undone.</string>
+    <string name="reset">Reset</string>
+    <string name="cancel">Cancel</string>
+    <string name="high_score_reset">High score has been reset</string>
 </resources>

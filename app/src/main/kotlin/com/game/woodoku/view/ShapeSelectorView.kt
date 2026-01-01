@@ -141,7 +141,8 @@ class ShapeSelectorView @JvmOverloads constructor(
             val height = (shape.height * cellSize).toInt()
             outShadowSize.set(width, height)
             // Touch point at bottom center so shape appears above finger
-            outShadowTouchPoint.set(width / 2, height + (cellSize * 1.5f).toInt())
+            // Use smaller offset (0.5 cells) to allow placing in bottom rows
+            outShadowTouchPoint.set(width / 2, height + (cellSize * 0.5f).toInt())
         }
 
         override fun onDrawShadow(canvas: Canvas) {
