@@ -75,31 +75,29 @@ class GameLogic(private val state: GameState) {
         // Remove shape from available
         state.availableShapes[shapeIndex] = null
 
-        // Calculate base score for placing
-        val placementScore = shape.cells.size * 10
-        var totalPointsGained = placementScore
-        state.score += placementScore
-
         // Check and clear lines
         val (linesCleared, clearedCells, cellColors) = checkAndClearLines()
 
+        var totalPointsGained = 0
+
         if (linesCleared > 0) {
             state.combo++
+            state.streak++
             val lineScore = linesCleared * 100 * state.combo
             state.score += lineScore
             totalPointsGained += lineScore
             listener?.onLinesCleared(linesCleared, clearedCells, cellColors)
+
+            // Check streak bonus
+            val streakBonus = getStreakBonus(state.streak)
+            if (streakBonus > 0) {
+                state.score += streakBonus
+                totalPointsGained += streakBonus
+                listener?.onStreakMilestone(state.streak, streakBonus)
+            }
         } else {
             state.combo = 0
-        }
-
-        // Update streak
-        state.streak++
-        val streakBonus = getStreakBonus(state.streak)
-        if (streakBonus > 0) {
-            state.score += streakBonus
-            totalPointsGained += streakBonus
-            listener?.onStreakMilestone(state.streak, streakBonus)
+            state.streak = 0
         }
 
         listener?.onGridChanged()

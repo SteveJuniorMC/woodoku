@@ -133,7 +133,7 @@ class GameView @JvmOverloads constructor(
                     true
                 }
                 DragEvent.ACTION_DRAG_EXITED -> {
-                    clearGhost()
+                    // Don't clear ghost - allow dropping even if finger exits view bounds
                     true
                 }
                 DragEvent.ACTION_DROP -> {
@@ -144,6 +144,11 @@ class GameView @JvmOverloads constructor(
                     true
                 }
                 DragEvent.ACTION_DRAG_ENDED -> {
+                    // If ghost is still valid when drag ends (finger lifted outside view),
+                    // place the shape at the last valid position
+                    if (isGhostValid && ghostX >= 0 && ghostY >= 0) {
+                        shapePlacedListener?.onShapePlaced(ghostShapeIndex, ghostX, ghostY)
+                    }
                     clearGhost()
                     dragEndedListener?.onDragEnded()
                     true
