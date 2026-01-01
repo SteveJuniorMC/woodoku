@@ -24,7 +24,8 @@ class GameView @JvmOverloads constructor(
     private var gameState: GameState? = null
     private var gameLogic: GameLogic? = null
 
-    private var cellSize = 0f
+    var cellSize = 0f
+        private set
     private var gridOffset = 0f
     private val cellPadding = 2f
     private val cornerRadius = 4f
@@ -69,7 +70,12 @@ class GameView @JvmOverloads constructor(
         fun onShapePlaced(shapeIndex: Int, gridX: Int, gridY: Int)
     }
 
+    interface OnDragEndedListener {
+        fun onDragEnded()
+    }
+
     var shapePlacedListener: OnShapePlacedListener? = null
+    var dragEndedListener: OnDragEndedListener? = null
 
     init {
         setOnDragListener { _, event ->
@@ -99,6 +105,7 @@ class GameView @JvmOverloads constructor(
                 }
                 DragEvent.ACTION_DRAG_ENDED -> {
                     clearGhost()
+                    dragEndedListener?.onDragEnded()
                     true
                 }
                 else -> false

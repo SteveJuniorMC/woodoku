@@ -49,6 +49,17 @@ class MainActivity : AppCompatActivity(), GameLogic.GameListener {
             }
         }
 
+        gameView.dragEndedListener = object : GameView.OnDragEndedListener {
+            override fun onDragEnded() {
+                shapeSelectorView.onDragEnded()
+            }
+        }
+
+        // Pass grid cell size to shape selector after layout
+        gameView.post {
+            shapeSelectorView.gridCellSize = gameView.cellSize
+        }
+
         highScoreText.text = highScoreManager.getHighScore().toString()
 
         gameLogic.startNewGame()

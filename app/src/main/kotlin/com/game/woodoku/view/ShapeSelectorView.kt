@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Point
 import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.MotionEvent
@@ -24,6 +25,12 @@ class ShapeSelectorView @JvmOverloads constructor(
     private var cellSize = 0f
     private val cellPadding = 2f
     private val cornerRadius = 4f
+
+    // Grid cell size for drag shadow (set by MainActivity)
+    var gridCellSize = 0f
+
+    // Prevent double-drag
+    private var isDragging = false
 
     private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.grid_background)
@@ -89,18 +96,66 @@ class ShapeSelectorView @JvmOverloads constructor(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if (event.action == MotionEvent.ACTION_DOWN) {
-            val state = gameState ?: return false
-            val slotIndex = (event.x / shapeSlotWidth).toInt().coerceIn(0, 2)
-            val shape = state.availableShapes.getOrNull(slotIndex) ?: return false
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                if (isDragging) return false
 
-            val dragData = GameView.DragData(shape, slotIndex)
-            val shadowBuilder = DragShadowBuilder(this)
-            val clipData = ClipData.newPlainText("shape", slotIndex.toString())
+                val state = gameState ?: return false
+                val slotIndex = (event.x / shapeSlotWidth).toInt().coerceIn(0, 2)
+                val shape = state.availableShapes.getOrNull(slotIndex) ?: return false
 
-            startDragAndDrop(clipData, shadowBuilder, dragData, 0)
-            return true
+                isDragging = true
+
+                val dragData = GameView.DragData(shape, slotIndex)
+                val useCellSize = if (gridCellSize > 0) gridCellSize else cellSize
+                val shadowBuilder = ShapeDragShadowBuilder(context, shape, useCellSize)
+                val clipData = ClipData.newPlainText("shape", slotIndex.toString())
+
+                startDragAndDrop(clipData, shadowBuilder, dragData, 0)
+                return true
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                isDragging = false
+            }
         }
         return super.onTouchEvent(event)
+    }
+
+    fun onDragEnded() {
+        isDragging = false
+    }
+
+    private class ShapeDragShadowBuilder(
+        private val context: Context,
+        private val shape: Shape,
+        private val cellSize: Float
+    ) : DragShadowBuilder() {
+
+        private val cellPadding = 2f
+        private val cornerRadius = 4f
+        private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        private val cellRect = RectF()
+
+        override fun onProvideShadowMetrics(outShadowSize: Point, outShadowTouchPoint: Point) {
+            val width = (shape.width * cellSize).toInt()
+            val height = (shape.height * cellSize).toInt()
+            outShadowSize.set(width, height)
+            // Touch point at bottom center so shape appears above finger
+            outShadowTouchPoint.set(width / 2, height + (cellSize * 1.5f).toInt())
+        }
+
+        override fun onDrawShadow(canvas: Canvas) {
+            paint.color = ContextCompat.getColor(context, shape.colorResId)
+
+            for ((dx, dy) in shape.cells) {
+                val left = dx * cellSize + cellPadding
+                val top = dy * cellSize + cellPadding
+                val right = (dx + 1) * cellSize - cellPadding
+                val bottom = (dy + 1) * cellSize - cellPadding
+
+                cellRect.set(left, top, right, bottom)
+                canvas.drawRoundRect(cellRect, cornerRadius, cornerRadius, paint)
+            }
+        }
     }
 }
