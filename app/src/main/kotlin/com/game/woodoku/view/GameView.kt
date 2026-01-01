@@ -126,8 +126,11 @@ class GameView @JvmOverloads constructor(
     private fun updateGhostPosition(x: Float, y: Float) {
         val shape = ghostShape ?: return
 
+        // Offset to match drag shadow (shape appears above finger)
+        val offsetY = y - cellSize * 1.5f - (shape.height * cellSize) / 2
+
         val gridX = ((x - gridOffset) / cellSize).toInt() - shape.width / 2
-        val gridY = ((y - gridOffset) / cellSize).toInt() - shape.height / 2
+        val gridY = ((offsetY - gridOffset) / cellSize).toInt()
 
         if (gridX != ghostX || gridY != ghostY) {
             ghostX = gridX
