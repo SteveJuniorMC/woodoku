@@ -29,8 +29,9 @@ class ShapeSelectorView @JvmOverloads constructor(
     // Grid cell size for drag shadow (set by MainActivity)
     var gridCellSize = 0f
 
-    // Prevent double-drag
+    // Track dragging state
     private var isDragging = false
+    private var draggingSlotIndex = -1
 
     private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.grid_background)
@@ -66,6 +67,9 @@ class ShapeSelectorView @JvmOverloads constructor(
         val state = gameState ?: return
 
         for (i in 0 until 3) {
+            // Don't draw the shape being dragged
+            if (isDragging && i == draggingSlotIndex) continue
+
             val shape = state.availableShapes.getOrNull(i)
             val slotCenterX = shapeSlotWidth * i + shapeSlotWidth / 2
             val slotCenterY = height / 2f
@@ -105,6 +109,8 @@ class ShapeSelectorView @JvmOverloads constructor(
                 val shape = state.availableShapes.getOrNull(slotIndex) ?: return false
 
                 isDragging = true
+                draggingSlotIndex = slotIndex
+                invalidate() // Hide the shape being dragged
 
                 val dragData = GameView.DragData(shape, slotIndex)
                 val useCellSize = if (gridCellSize > 0) gridCellSize else cellSize
@@ -116,6 +122,7 @@ class ShapeSelectorView @JvmOverloads constructor(
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 isDragging = false
+                draggingSlotIndex = -1
             }
         }
         return super.onTouchEvent(event)
@@ -123,6 +130,8 @@ class ShapeSelectorView @JvmOverloads constructor(
 
     fun onDragEnded() {
         isDragging = false
+        draggingSlotIndex = -1
+        invalidate()
     }
 
     private class ShapeDragShadowBuilder(

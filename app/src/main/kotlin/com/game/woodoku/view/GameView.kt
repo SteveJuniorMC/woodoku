@@ -128,6 +128,11 @@ class GameView @JvmOverloads constructor(
                         true
                     } else false
                 }
+                DragEvent.ACTION_DRAG_ENTERED -> {
+                    // Show ghost immediately when finger enters view
+                    updateGhostPosition(event.x, event.y)
+                    true
+                }
                 DragEvent.ACTION_DRAG_LOCATION -> {
                     updateGhostPosition(event.x, event.y)
                     true
@@ -197,6 +202,13 @@ class GameView @JvmOverloads constructor(
 
     fun getGridCenterX(): Float = gridOffset + (GRID_SIZE * cellSize) / 2
     fun getGridCenterY(): Float = gridOffset + (GRID_SIZE * cellSize) / 2
+
+    // Called from parent layout to update ghost position when finger is outside GameView
+    fun updateGhostFromParent(x: Float, y: Float) {
+        if (ghostShape != null) {
+            updateGhostPosition(x, y)
+        }
+    }
 
     private fun updateGhostPosition(x: Float, y: Float) {
         val shape = ghostShape ?: return

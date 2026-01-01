@@ -2,7 +2,10 @@ package com.game.woodoku
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.DragEvent
+import android.view.View
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -76,6 +79,31 @@ class MainActivity : AppCompatActivity(), GameLogic.GameListener {
         // Pass grid cell size to shape selector after layout
         gameView.post {
             shapeSelectorView.gridCellSize = gameView.cellSize
+        }
+
+        // Set up root layout drag listener to forward drag events to GameView
+        // This allows ghost to appear when shadow enters grid (even if finger is below)
+        val rootLayout = findViewById<LinearLayout>(R.id.rootLayout)
+        rootLayout.setOnDragListener { _, event ->
+            when (event.action) {
+                DragEvent.ACTION_DRAG_LOCATION -> {
+                    // Convert screen coordinates to GameView coordinates
+                    val gameViewLocation = IntArray(2)
+                    gameView.getLocationOnScreen(gameViewLocation)
+                    val rootLocation = IntArray(2)
+                    rootLayout.getLocationOnScreen(rootLocation)
+
+                    val relativeX = event.x - (gameViewLocation[0] - rootLocation[0])
+                    val relativeY = event.y - (gameViewLocation[1] - rootLocation[1])
+
+                    gameView.updateGhostFromParent(relativeX, relativeY)
+                    true
+                }
+                DragEvent.ACTION_DRAG_STARTED, DragEvent.ACTION_DRAG_ENTERED,
+                DragEvent.ACTION_DRAG_EXITED, DragEvent.ACTION_DRAG_ENDED -> true
+                DragEvent.ACTION_DROP -> false // Let GameView handle drops
+                else -> false
+            }
         }
 
         highScoreText.text = highScoreManager.getHighScore().toString()
