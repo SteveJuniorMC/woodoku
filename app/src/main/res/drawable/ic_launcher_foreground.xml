@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Simple 3x3 grid icon -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,30h14v14h-14zM46,30h14v14h-14zM62,30h14v14h-14zM30,46h14v14h-14zM46,46h14v14h-14zM62,46h14v14h-14zM30,62h14v14h-14zM46,62h14v14h-14zM62,62h14v14h-14z"/>
+</vector>

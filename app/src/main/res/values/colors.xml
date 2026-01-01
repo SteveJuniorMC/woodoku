@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="background">#2C2C2C</color>
+    <color name="grid_background">#3D3D3D</color>
+    <color name="grid_line">#4A4A4A</color>
+    <color name="grid_line_bold">#666666</color>
+    <color name="cell_empty">#4A4A4A</color>
+
+    <!-- Block colors -->
+    <color name="block_red">#E74C3C</color>
+    <color name="block_orange">#E67E22</color>
+    <color name="block_yellow">#F1C40F</color>
+    <color name="block_green">#2ECC71</color>
+    <color name="block_blue">#3498DB</color>
+    <color name="block_purple">#9B59B6</color>
+    <color name="block_pink">#E91E63</color>
+    <color name="block_teal">#1ABC9C</color>
+
+    <!-- UI colors -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#AAAAAA</color>
+    <color name="accent">#F39C12</color>
+
+    <!-- Ghost preview -->
+    <color name="ghost_valid">#4DFFFFFF</color>
+    <color name="ghost_invalid">#4DFF0000</color>
+</resources>
