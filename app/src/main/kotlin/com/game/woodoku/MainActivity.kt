@@ -99,9 +99,13 @@ class MainActivity : AppCompatActivity(), GameLogic.GameListener {
                     gameView.updateGhostFromParent(relativeX, relativeY)
                     true
                 }
+                DragEvent.ACTION_DROP -> {
+                    // Handle drop here to prevent shadow return animation
+                    // GameView's DRAG_ENDED will handle the actual placement
+                    true
+                }
                 DragEvent.ACTION_DRAG_STARTED, DragEvent.ACTION_DRAG_ENTERED,
                 DragEvent.ACTION_DRAG_EXITED, DragEvent.ACTION_DRAG_ENDED -> true
-                DragEvent.ACTION_DROP -> false // Let GameView handle drops
                 else -> false
             }
         }
@@ -152,7 +156,7 @@ class MainActivity : AppCompatActivity(), GameLogic.GameListener {
 
     override fun onLinesCleared(count: Int, clearedCells: Set<Pair<Int, Int>>, cellColors: Map<Pair<Int, Int>, Int>) {
         gameView.animateLineClear(clearedCells, cellColors, count)
-        soundManager.playLineClear(gameState.combo)
+        soundManager.playLineClear()
         vibrationHelper.vibrateLineClear(count)
     }
 

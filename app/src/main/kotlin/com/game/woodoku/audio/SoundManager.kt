@@ -53,12 +53,8 @@ class SoundManager(context: Context, private val settingsManager: SettingsManage
 
     fun playBlockPlace() = play(Sound.BLOCK_PLACE)
 
-    fun playLineClear(combo: Int) {
-        if (combo > 1) {
-            play(Sound.LINE_CLEAR_COMBO, 1f + (combo - 1) * 0.1f)
-        } else {
-            play(Sound.LINE_CLEAR)
-        }
+    fun playLineClear() {
+        play(Sound.LINE_CLEAR)
     }
 
     fun playGameOver() = play(Sound.GAME_OVER)
