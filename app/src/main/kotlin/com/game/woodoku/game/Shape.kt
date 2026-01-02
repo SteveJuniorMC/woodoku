@@ -70,11 +70,10 @@ data class Shape(
         private val BIG_L2 = listOf(Pair(0, 0), Pair(1, 0), Pair(2, 0), Pair(2, 1), Pair(2, 2))
         private val BIG_L3 = listOf(Pair(0, 0), Pair(1, 0), Pair(2, 0), Pair(0, 1), Pair(0, 2))
         private val BIG_L4 = listOf(Pair(0, 0), Pair(0, 1), Pair(0, 2), Pair(1, 0), Pair(2, 0))
-        private val SQUARE_3X3 = listOf(
-            Pair(0, 0), Pair(1, 0), Pair(2, 0),
-            Pair(0, 1), Pair(1, 1), Pair(2, 1),
-            Pair(0, 2), Pair(1, 2), Pair(2, 2)
-        )
+
+        // Diagonal 3-block shapes
+        private val DIAG_1 = listOf(Pair(0, 0), Pair(1, 1), Pair(2, 2)) // top-left to bottom-right
+        private val DIAG_2 = listOf(Pair(2, 0), Pair(1, 1), Pair(0, 2)) // top-right to bottom-left
 
         // 5-cell shapes
         private val PENTO_I_H = listOf(Pair(0, 0), Pair(1, 0), Pair(2, 0), Pair(3, 0), Pair(4, 0))
@@ -92,7 +91,7 @@ data class Shape(
             TETRO_S1, TETRO_S2,
             TETRO_Z1, TETRO_Z2,
             BIG_L1, BIG_L2, BIG_L3, BIG_L4,
-            SQUARE_3X3,
+            DIAG_1, DIAG_2,
             PENTO_I_H, PENTO_I_V
         )
 
